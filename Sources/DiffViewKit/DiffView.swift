@@ -69,22 +69,29 @@ public struct DiffView: NSViewRepresentable {
 
         func update(document: DiffDocument, options: DiffOptions) {
             guard self.document != document || self.options != options else { return }
+            let optionsChanged = self.options != options
             self.document = document
             self.options = options
             revision += 1
-            render()
+            render(applyOptions: optionsChanged)
         }
 
-        func render() {
+        func render(applyOptions: Bool = true) {
             guard ready, !disposed, let webView else { return }
             let expectedRevision = revision
             do {
                 let encoder = JSONEncoder()
                 let documentValue = try JSONSerialization.jsonObject(with: encoder.encode(document))
-                let optionsValue = try JSONSerialization.jsonObject(with: encoder.encode(options))
+                var arguments: [String: Any] = ["document": documentValue]
+                if applyOptions {
+                    arguments["options"] = try JSONSerialization.jsonObject(with: encoder.encode(options))
+                }
+                // Document refreshes retain the renderer's user-selected layout/theme.
+                // Initial load and an explicit host-options change remain authoritative.
                 webView.callAsyncJavaScript(
-                    "return await window.diffView.render(document, options);",
-                    arguments: ["document": documentValue, "options": optionsValue],
+                    applyOptions ? "return await window.diffView.render(document, options);"
+                        : "return await window.diffView.render(document);",
+                    arguments: arguments,
                     in: nil, in: .page
                 ) { [weak self] result in
                     guard let self, !self.disposed, self.revision == expectedRevision else { return }

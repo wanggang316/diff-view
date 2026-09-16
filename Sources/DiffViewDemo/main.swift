@@ -6,10 +6,13 @@ import WebKit
 @MainActor
 final class DemoDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
-    let smokeTest = CommandLine.arguments.contains("--smoke-test")
+    let layoutSmokeTest = CommandLine.arguments.contains("--layout-smoke-test")
+    var smokeTest: Bool { layoutSmokeTest || CommandLine.arguments.contains("--smoke-test") }
     var finished = false
     var receivedReady = false
     var checkedDOM = false
+    var layoutSmokeStarted = false
+    var lastRenderedID: String?
     let sample = DiffDocument(
         id: "sample-1", path: "Sources/Greeting.swift",
         oldText: "func greeting() -> String {\n    return \"Hello\"\n}\n",
@@ -39,8 +42,19 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
     func handle(_ event: DiffEvent) {
         print("Diff event: \(event.type) \(event.documentID ?? "") \(event.message ?? "")")
         if event.type == "ready" { receivedReady = true }
+        if event.type == "rendered" { lastRenderedID = event.documentID }
         guard smokeTest else { return }
         if event.type == "error" { finish(success: false, message: event.message ?? "Unknown error") }
+        if layoutSmokeTest {
+            if event.type == "rendered", !layoutSmokeStarted {
+                layoutSmokeStarted = true
+                Task {
+                    do { try await verifyLayoutUpdates() }
+                    catch { finish(success: false, message: error.localizedDescription) }
+                }
+            }
+            return
+        }
         if event.type == "openFile" {
             finish(success: checkedDOM && event.documentID == sample.id && event.path == sample.path,
                    message: "Bundled page rendered source text and delivered ready/rendered/openFile events.")
@@ -63,6 +77,45 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    func verifyLayoutUpdates() async throws {
+        guard receivedReady, let hosting = window?.contentView as? NSHostingView<DiffView>,
+              let webView = findWebView(hosting) else {
+            finish(success: false, message: "Missing native host or ready event.")
+            return
+        }
+        _ = try await webView.evaluateJavaScript("document.querySelector('#split').click()")
+        for index in 2...3 {
+            var updated = sample
+            updated.id = "sample-\(index)"
+            if index == 3 { updated.path = "Sources/Another.swift" }
+            updated.newText += "// Updated \(index)\n"
+            hosting.rootView = DiffView(document: updated) { [weak self] event in self?.handle(event) }
+            guard await waitForRender(updated.id),
+                  try await webView.evaluateJavaScript("document.querySelectorAll('.d2h-file-side-diff').length === 2") as? Bool == true else {
+                finish(success: false, message: "Document update reset the user's split layout.")
+                return
+            }
+        }
+        var updated = sample
+        updated.id = "host-options"
+        hosting.rootView = DiffView(document: updated, options: .init(layout: "unified", theme: "light")) {
+            [weak self] event in self?.handle(event)
+        }
+        let rendered = await waitForRender(updated.id)
+        let applied = try await webView.evaluateJavaScript(
+            "document.querySelectorAll('.d2h-file-side-diff').length === 0 && document.documentElement.dataset.theme === 'light'"
+        ) as? Bool == true
+        finish(success: rendered && applied, message: "Native document updates preserve Split; host option changes override it.")
+    }
+
+    func waitForRender(_ id: String) async -> Bool {
+        for _ in 0..<200 {
+            if lastRenderedID == id { return true }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return false
     }
 
     func findWebView(_ view: NSView) -> WKWebView? {

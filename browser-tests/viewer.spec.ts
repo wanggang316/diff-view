@@ -1,4 +1,21 @@
 import { test, expect } from '@playwright/test';
+test('document refresh preserves the user layout until the host changes options', async ({ page }) => {
+  await page.goto('/demo.html');
+  await page.getByRole('button', { name: 'Unified', exact: true }).click();
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
+  for (const path of ['Sources/WorktreeService.swift', 'Sources/AnotherFile.swift']) {
+    await page.evaluate(path => (window as any).diffView.render({
+      id: path, path, oldText: 'let value = 1\n', newText: 'let value = 3\n',
+    }), path);
+    await expect(page.getByRole('button', { name: 'Split', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.d2h-file-side-diff')).toHaveCount(2);
+  }
+  await page.evaluate(() => (window as any).diffView.render({
+    id: 'host-options', path: 'Source.swift', oldText: 'let value = 1\n', newText: 'let value = 4\n',
+  }, { layout: 'unified', theme: 'light' }));
+  await expect(page.getByRole('button', { name: 'Unified', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
 test('native host documents without language still receive syntax highlighting', async ({ page }) => {
   await page.goto('/demo.html');
   for (const [path, newText] of [

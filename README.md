@@ -51,6 +51,8 @@ Wait for `ready` in native hosts; browser listeners that need this event must be
 
 `render` replaces the current document. A bad request clears the previous preview and emits `error`. `dispose` removes owned DOM event listeners and permanently disables that renderer instance. Theme/layout changes currently re-render and reset selection/scroll.
 
+The Swift wrapper preserves Web toolbar layout/theme choices when only the document changes. Changed host options override those choices. Recreating the native view starts with the host options again.
+
 ## Verify
 
 ```bash
@@ -60,6 +62,7 @@ npx playwright install webkit
 npm run test:browser
 swift test
 swift run diff-view-demo --smoke-test
+swift run diff-view-demo --layout-smoke-test
 ```
 
 The component never opens an editor itself. Native/browser hosts resolve `openFile` events to their editor service. The old side represents historical content; hosts must not reinterpret it as a current-file line number.

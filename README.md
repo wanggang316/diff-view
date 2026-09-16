@@ -63,6 +63,7 @@ npm run test:browser
 swift test
 swift run diff-view-demo --smoke-test
 swift run diff-view-demo --layout-smoke-test
+swift run diff-view-demo --lifecycle-smoke-test
 ```
 
 The component never opens an editor itself. Native/browser hosts resolve `openFile` events to their editor service. The old side represents historical content; hosts must not reinterpret it as a current-file line number.

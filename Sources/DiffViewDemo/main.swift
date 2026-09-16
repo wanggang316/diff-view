@@ -4,10 +4,36 @@ import SwiftUI
 import WebKit
 
 @MainActor
+struct LifecycleHost: View {
+    var document: DiffDocument?
+    var onEvent: @MainActor (DiffEvent) -> Void
+    var body: some View {
+        HSplitView {
+            Text("Terminal").frame(minWidth: 220, maxWidth: .infinity, maxHeight: .infinity)
+            VStack {
+                Text("Changes / Outgoing")
+                HSplitView {
+                    List { Text("Demo.swift"); Text("binary.bin") }
+                        .frame(minWidth: 150, idealWidth: 200, maxWidth: 330)
+                    Group {
+                        if let document {
+                            DiffView(document: document, onEvent: onEvent).id(0)
+                        } else {
+                            ProgressView("Loading file…")
+                        }
+                    }.frame(minWidth: 250, maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }.frame(minWidth: 440, idealWidth: 700, maxWidth: .infinity)
+        }
+    }
+}
+
+@MainActor
 final class DemoDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
     let layoutSmokeTest = CommandLine.arguments.contains("--layout-smoke-test")
-    var smokeTest: Bool { layoutSmokeTest || CommandLine.arguments.contains("--smoke-test") }
+    let lifecycleSmokeTest = CommandLine.arguments.contains("--lifecycle-smoke-test")
+    var smokeTest: Bool { lifecycleSmokeTest || layoutSmokeTest || CommandLine.arguments.contains("--smoke-test") }
     var finished = false
     var receivedReady = false
     var checkedDOM = false
@@ -26,14 +52,18 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                               styleMask: [.titled, .closable, .resizable, .miniaturizable],
                               backing: .buffered, defer: false)
         window.title = "Diff View — Native Host"
-        window.contentView = NSHostingView(rootView: content)
+        if lifecycleSmokeTest {
+            window.contentView = NSHostingView(rootView: LifecycleHost(document: sample) { [weak self] event in self?.handle(event) })
+        } else {
+            window.contentView = NSHostingView(rootView: content)
+        }
         window.center()
         window.makeKeyAndOrderFront(nil)
         self.window = window
         NSApp.activate(ignoringOtherApps: true)
         if smokeTest {
             Task {
-                try? await Task.sleep(for: .seconds(15))
+                try? await Task.sleep(for: .seconds(lifecycleSmokeTest ? 60 : 15))
                 if !finished { finish(success: false, message: "Timed out waiting for the native bridge.") }
             }
         }
@@ -45,6 +75,16 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         if event.type == "rendered" { lastRenderedID = event.documentID }
         guard smokeTest else { return }
         if event.type == "error" { finish(success: false, message: event.message ?? "Unknown error") }
+        if lifecycleSmokeTest {
+            if event.type == "rendered", !layoutSmokeStarted {
+                layoutSmokeStarted = true
+                Task {
+                    do { try await verifyLifecycle() }
+                    catch { finish(success: false, message: error.localizedDescription) }
+                }
+            }
+            return
+        }
         if layoutSmokeTest {
             if event.type == "rendered", !layoutSmokeStarted {
                 layoutSmokeStarted = true
@@ -77,6 +117,36 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+    }
+
+    func verifyLifecycle() async throws {
+        guard let hosting = window?.contentView as? NSHostingView<LifecycleHost> else { return }
+        print("Initial host bounds \(hosting.bounds), web \(String(describing: findWebView(hosting)?.bounds))")
+        for index in 2...21 {
+            hosting.rootView = LifecycleHost(document: nil) { [weak self] event in self?.handle(event) }
+            try await Task.sleep(for: .milliseconds(120))
+            guard findWebView(hosting) == nil else {
+                finish(success: false, message: "The loading branch did not remove the previous WKWebView.")
+                return
+            }
+            var updated = sample
+            updated.id = "remount-\(index)"
+            updated.newText += "// Remount \(index)\n"
+            hosting.rootView = LifecycleHost(document: updated) { [weak self] event in self?.handle(event) }
+            guard await waitForRender(updated.id), let webView = findWebView(hosting) else {
+                finish(success: false, message: "Remount \(index) did not render. Native tree: \(hosting.subviews)")
+                return
+            }
+            let valid = try await webView.evaluateJavaScript("document.body.innerText.includes('Remount \(index)')") as? Bool == true
+            try await Task.sleep(for: .milliseconds(200))
+            hosting.layoutSubtreeIfNeeded()
+            guard valid, webView.bounds.width > 100, webView.bounds.height > 100 else {
+                finish(success: false, message: "Remount \(index) has missing DOM or invalid bounds \(webView.bounds).")
+                return
+            }
+            print("Remount \(index) bounds \(webView.bounds)")
+        }
+        finish(success: true, message: "Twenty DiffView removals and recreations rendered inside nested HSplitViews.")
     }
 
     func verifyLayoutUpdates() async throws {

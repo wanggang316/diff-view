@@ -1,0 +1,15 @@
+{
+  "name": "diff-view",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "dev": "npm run build && node scripts/serve.mjs",
+    "test": "tsx --test src/*.test.ts",
+    "test:browser": "playwright test",
+    "check": "npm test && npm run build && npm run test:browser"
+  },
+  "dependencies": { "diff": "9.0.0", "diff2html": "3.4.56" },
+  "devDependencies": { "@playwright/test": "^1.55.0", "@types/node": "^22.0.0", "esbuild": "^0.25.0", "tsx": "^4.20.0", "typescript": "^5.9.0" }
+}

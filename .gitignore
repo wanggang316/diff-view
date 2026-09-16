@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.build/
+.swiftpm/
+Sources/DiffViewKit/Resources/Web/
+playwright-report/
+test-results/
+.DS_Store

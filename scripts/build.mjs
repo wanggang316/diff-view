@@ -1,0 +1,12 @@
+import { build } from 'esbuild';
+import { mkdir, writeFile, cp } from 'node:fs/promises';
+await mkdir('dist', { recursive: true });
+await build({ entryPoints: ['src/index.ts'], bundle: true, format: 'iife', target: 'safari17', outfile: 'dist/diff-view.js', minify: true, legalComments: 'eof' });
+await build({ entryPoints: ['src/demo.ts'], bundle: true, format: 'iife', target: 'safari17', outfile: 'dist/demo.js', minify: true });
+const html = demo => `<!doctype html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'"><title>Diff View</title><link rel="stylesheet" href="diff-view.css"></head><body><div id="app"></div><script src="diff-view.js"></script>${demo ? '<script src="demo.js"></script>' : ''}</body></html>`;
+await writeFile('dist/index.html', html(false));
+await writeFile('dist/demo.html', html(true));
+const resources = 'Sources/DiffViewKit/Resources/Web';
+await mkdir(resources, { recursive: true });
+for (const file of ['index.html', 'diff-view.js', 'diff-view.css']) await cp(`dist/${file}`, `${resources}/${file}`);
+console.log('Built browser bundle and offline Swift package resources.');

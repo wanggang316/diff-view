@@ -1,0 +1,41 @@
+import { test, expect } from '@playwright/test';
+test('offline rendering, modes, exact native event, hostile content and recovery', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    (window as any).messages = [];
+    (window as any).webkit = { messageHandlers: { diffView: { postMessage: (value: unknown) => (window as any).messages.push(value) } } };
+  });
+  await page.goto('/demo.html');
+  await expect(page.locator('#path')).toHaveText('Sources/WorktreeService.swift');
+  await expect(page.locator('.d2h-file-side-diff')).toHaveCount(2);
+  await expect(page.locator('.hljs-keyword').first()).toBeVisible();
+  await page.locator('.d2h-file-side-diff').last().locator('.d2h-code-side-linenumber').filter({ hasText: /^\s*8\s*$/ }).first().dblclick();
+  expect(await page.evaluate(() => (window as any).messages.findLast((event: any) => event.type === 'openFile'))).toMatchObject({ side: 'new', line: 8 });
+  await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Unified', exact: true }).click();
+  await expect(page.locator('.d2h-file-side-diff')).toHaveCount(0);
+  await page.locator('.line-num2').filter({ hasText: /^\s*8\s*$/ }).first().dblclick();
+  expect(await page.evaluate(() => (window as any).messages.findLast((event: any) => event.type === 'openFile'))).toMatchObject({ type: 'openFile', documentID: 'worktree-service:1', path: 'Sources/WorktreeService.swift', side: 'new', line: 8 });
+  await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.evaluate(() => (window as any).diffView.render({ id:'hostile', path:'<img src=x onerror="window.pwned=1">\n".ts', oldText:'', newText:'<script>window.pwned=1</script>\n' }));
+  await expect(page.locator('#diff')).toContainText('<script>window.pwned=1</script>');
+  expect(await page.evaluate(() => (window as any).pwned)).toBeUndefined();
+  await expect(page.locator('#diff script, #diff img')).toHaveCount(0);
+  await page.evaluate(() => (window as any).diffView.render({ id:'large', path:'x', oldText:'', newText:'x'.repeat(1_000_001) }));
+  await expect(page.locator('#diff')).toContainText('preview limit');
+  await expect(page.locator('#open')).toBeDisabled();
+  await page.evaluate(() => (window as any).diffView.render({ id:'same', path:'same.txt', oldText:'same', newText:'same' }));
+  await expect(page.locator('#diff')).toContainText('No content changes');
+  expect(errors).toEqual([]);
+});
+test('narrow layout is usable and code is selectable', async ({ page }) => {
+  await page.setViewportSize({ width: 480, height: 720 });
+  await page.goto('/demo.html');
+  await page.getByRole('button', { name: 'Unified', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Open file' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  expect(await page.locator('.d2h-code-line-ctn').first().evaluate(el => getComputedStyle(el).userSelect)).not.toBe('none');
+  await page.screenshot({ path: 'test-results/narrow.png', fullPage: true });
+});

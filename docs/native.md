@@ -1,6 +1,6 @@
 # Native macOS host
 
-Status: standalone prototype. No Codans integration or editor process launching is included.
+Status: integrated into Codans through a vendored Swift-package snapshot. The standalone demo remains independently runnable. Editor launching and Git operations belong to the host, not DiffViewKit.
 
 `DiffViewKit` is a Swift 6 package for macOS 14 and later. It exposes a SwiftUI
 `DiffView` backed by WKWebView. Web assets are copied into the SwiftPM resource
@@ -44,7 +44,7 @@ as structured JavaScript arguments rather than interpolated executable strings.
 Host navigation is restricted to the bundled index. The web page's Content
 Security Policy controls subresource loading. Dismantling the view removes its
 message handler and navigation delegate; a terminated web process reports an
-error and requires the host to recreate the view.
+error and requires the host to recreate the view. A ten-second watchdog starts at initial loading, including loads that never reach navigation completion; ready, failure, and disposal cancel it. Document-only updates preserve the Web toolbar options, while changed host options override them.
 
 Build the web bundle before using SwiftPM:
 
@@ -54,6 +54,8 @@ npm run build
 swift test
 swift run diff-view-demo
 swift run diff-view-demo --smoke-test
+swift run diff-view-demo --layout-smoke-test
+swift run diff-view-demo --lifecycle-smoke-test
 ```
 
 The smoke test starts a real macOS window, verifies `ready` then `rendered`
@@ -62,3 +64,5 @@ file-open button to validate its native callback, and exits
 within 15 seconds. It requires an active macOS graphical session. Unit tests
 cover bridge identity, version, path and line validation. They do not replace
 visual QA, editor integration tests, or large-file performance measurement.
+
+The layout smoke test checks same-file and new-document updates after selecting Split, then verifies that changed host options override the selection. The lifecycle smoke test removes and recreates the renderer twenty times inside nested HSplitViews, checking native events, DOM text, and view bounds. Codans local GUI results and untested remote cases are summarized in [verification](verification.md).

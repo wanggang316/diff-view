@@ -1,6 +1,6 @@
 # Independent Diff View
 
-Status: initial prototype implemented; Codans integration designed, not implemented.
+Status: component implemented and integrated into Codans through a vendored Swift-package snapshot. Local GUI core flows are verified; live SSH and live-PR GUI verification remain outstanding.
 
 ## Scope
 
@@ -80,31 +80,31 @@ Limits are per side: 1,000,000 JavaScript UTF-16 code units, 10,000 lines, no NU
 
 Outgoing means all committed branch changes relative to main or the PR target, not unpushed commits. Push does not clear it. Uncommitted modifications remain in Changes. Base priority is explicit user selection, PR target, then repository remote default branch; unresolved references require an explicit selection/error state.
 
-Show the actual base and snapshot freshness. Read local refs on ordinary refresh. A separate host Fetch & Refresh action updates remote refs; it writes Git metadata and is outside this read-only component. An offline or missing target is not an empty diff. Fork PR targets require mapping target repository plus branch to an available local ref; never assume origin is the base repository.
+Codans shows the actual comparison base and reads local refs on ordinary refresh. Fetching remote refs remains an external Git operation; there is no Fetch & Refresh action in the current panel. An offline or missing target is not an empty diff. Fork PR targets require mapping target repository plus branch to an available local ref; never assume origin is the base repository.
 
 ### Data integration
 
-Reuse Codans GitService / LiveGitService / CommandRunner, including existing SSH routing. Add typed comparison resolution and scope-aware file summaries. Resolve Outgoing endpoints to immutable SHAs before listing/reading files. Do not mix unstaged numstat with HEAD-to-worktree text.
+Codans uses GitService / LiveGitService / CommandRunner, including the existing SSH routing, for typed comparison resolution and scope-aware file summaries. Outgoing endpoints resolve to immutable SHAs before files are listed and read. Summary and text acquisition use the same comparison scope.
 
-Read the chosen file's old/new blob or working contents on demand. An untracked file has an empty old side. An unborn HEAD has an explicit empty-tree baseline. File status is independent of content difference. Git can classify content as binary via attributes even without NUL bytes; the host handles that before invoking this text renderer. Symlink contents represent the link, not its target; do not follow arbitrary targets while reading working files.
+Codans reads the chosen file's old/new blob or working contents on demand. An untracked file has an empty old side. An unborn HEAD has an explicit empty-tree baseline. File status is independent of content difference. Git can classify content as binary via attributes even without NUL bytes; the host handles that before invoking this text renderer. The current host shows a symlink-change notice and rejects working-file reads through symlinks.
 
 For reproducible Git semantics, host reads must document encoding, line-ending and filter treatment. jsdiff recomputes a presentation diff from supplied texts and is not guaranteed to reproduce Git's algorithm, hunk grouping, whitespace handling, or rename decisions. Rename/status/summary truth remains with Git. Exact Git patch rendering is a possible future input type, not implemented in this prototype.
 
 ### UI and lifecycle
 
-Embed as a resizable right-side panel with an expanded reading mode. Codans owns Changes/Outgoing tabs and the file list; each panel needs only one renderer instance. Preserve terminal surface ownership and restore focus on close. Existing external Git-client commands remain separate.
+Codans embeds the component in a resizable right-side panel with an expanded reading mode. It owns Changes/Outgoing tabs and the file list and keeps a stable renderer instance while loading or displaying notices. Terminal sessions retain their ownership; closing the panel restores terminal focus. Existing external Git-client commands remain separate.
 
-Use generation tokens when switching worktree, file, scope, or base; cancel earlier work and reject late results. Cache keys include execution host, repository/worktree, comparison endpoints, file, and presentation options. Keep immutable commit content separate from mutable index/worktree content.
+Host generation tokens reject late worktree, file, scope, and base results. Committed content uses immutable Git object IDs; mutable working content is read again when refreshed.
 
-HEAD, working-directory, index, and remote-ref changes invalidate the relevant host snapshot. A working-directory read is not an atomic repository snapshot; detect changes and refresh. Initial remote refresh triggers are panel opening, activation, and manual refresh. Do not create a second component-owned polling system.
+The visible host panel refreshes local Git state every two seconds and supports manual refresh. It does not fetch remote refs automatically. A working-directory read is not an atomic repository snapshot. The component has no polling system of its own.
 
-The host remembers selected file and panel state per worktree. Scroll/selection restoration across document updates is a future component API; current re-render resets both.
+The host remembers selected file, comparison scope, and base per worktree for the application session. Scroll/selection restoration across document updates is a future component API; current re-render resets both.
 
 ### Editor jump semantics
 
-An event reports where the user clicked in the supplied snapshot. It does not claim that the same line exists in today's working file. Codans maps new-side positions when its working content matches the snapshot. Outgoing or staged text may differ from the working file: map revisions or open the file without a line. Old-side and deleted-file requests should open an explicitly historical view if supported, otherwise report unavailability or offer a directory/file fallback without fabricating a line.
+An event reports where the user clicked in the supplied snapshot. It does not claim that the same line exists in today's working file. Codans maps new-side positions when its working content matches the snapshot. Outgoing and staged requests open the current file without a line because their text may differ from the working file. Old-side and deleted-file requests report unavailability rather than fabricating a current position.
 
-Extend Codans EditorService with file/line capability metadata and remote-host routing. DiffViewKit must not depend on editor-specific command formats.
+Codans DiffEditorClient and EditorService own configured-editor resolution, file/line launching, path validation, and remote-host routing. DiffViewKit has no editor-specific command formats.
 
 ## Delivery stages
 
@@ -112,7 +112,7 @@ Extend Codans EditorService with file/line capability metadata and remote-host r
 2. Component hardening: measured large-file behavior, cancellation strategy if computation becomes asynchronous, context expansion, search, selection/scroll restoration, accessibility audit, reproducible resource release packaging.
 3. Codans integration: Git comparison APIs, side panel, file inventory, refresh invalidation, revision-aware editor jumping, end-to-end local/SSH acceptance tests.
 
-Only stage 1 is in this project's current implementation scope. No Codans production files are changed by this prototype.
+Stage 1 and the Codans local integration are implemented. Codans consumes code snapshot `5df58273a300e247491aeafede9d237e84b5d716`; documentation-only commits do not change that pin. Stage 2 remains future work. Local GUI core cases have passed; narrow-window expanded-sidebar verification is pending the host fix build, and live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
 
 ## Acceptance criteria
 

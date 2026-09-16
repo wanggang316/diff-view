@@ -2,7 +2,7 @@
 
 An independent, read-only code diff component for browser hosts and native macOS applications. The Web renderer is bundled locally and embedded by a Swift package using `WKWebView`. No Git executable, network service, Codans model, or repository access is required.
 
-**Status:** initial implementation and integration prototype. Not integrated into Codans. Large-file virtualization, search UI, context expansion, and a published release are not implemented.
+**Status:** implemented and embedded in Codans through a vendored Swift-package snapshot. Codans owns Git reads, comparison selection, and editor launching; this component remains independent. Large-file virtualization, search UI, context expansion, and a published release are not implemented. See [verification](docs/verification.md) for tested flows and remaining limits.
 
 ## Run
 

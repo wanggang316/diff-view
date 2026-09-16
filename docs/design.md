@@ -112,7 +112,7 @@ Codans DiffEditorClient and EditorService own configured-editor resolution, file
 2. Component hardening: measured large-file behavior, cancellation strategy if computation becomes asynchronous, context expansion, search, selection/scroll restoration, accessibility audit, reproducible resource release packaging.
 3. Codans integration: Git comparison APIs, side panel, file inventory, refresh invalidation, revision-aware editor jumping, end-to-end local/SSH acceptance tests.
 
-Stage 1 and the Codans local integration are implemented. Codans consumes code snapshot `5df58273a300e247491aeafede9d237e84b5d716`; documentation-only commits do not change that pin. Stage 2 remains future work. Local GUI core cases have passed; narrow-window expanded-sidebar verification is pending the host fix build, and live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
+Stage 1 and the Codans local integration are implemented. Codans consumes code snapshot `5df58273a300e247491aeafede9d237e84b5d716`; documentation-only commits do not change that pin. Stage 2 remains future work. Local GUI core cases and final 900px / wide-window layout cases have passed, including expanded-sidebar hiding and restoration. Live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
 
 ## Acceptance criteria
 

@@ -17,7 +17,7 @@ Date: 2026-09-17. Environment: macOS arm64, Swift 6.2, Node.js 22.19.0.
 
 Codans embeds code snapshot `5df58273a300e247491aeafede9d237e84b5d716`. Its local GUI core cases passed: Changes scopes and Outgoing, file-type handling, refresh, current-file launching in Cursor at line 4, focus behavior, and error recovery. The host repository maintains the case record at `docs/user-tests/git-diff-viewer.md`.
 
-The final narrow-window expanded-sidebar fix is awaiting its host build and GUI check. Real SSH and live-PR GUI cases have not run; local fixture results do not establish those integrations. Git access, comparison semantics, and editor launching remain Codans responsibilities.
+Final host GUI checks passed at 900px in normal and expanded modes and at wide-window zoom. Expansion hides the sidebar; Collapse restores the sidebar and terminal; Show Sidebar exits expansion. The Outgoing body was verified to show the branch contribution. The final host test run passed 26 app tests and 6 CodansCore tests. Real SSH and live-PR GUI cases have not run; local fixture results do not establish those integrations. Git access, comparison semantics, and editor launching remain Codans responsibilities.
 
 ## Limits
 

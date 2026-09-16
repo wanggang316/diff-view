@@ -1,4 +1,19 @@
 import { test, expect } from '@playwright/test';
+test('native host documents without language still receive syntax highlighting', async ({ page }) => {
+  await page.goto('/demo.html');
+  for (const [path, newText] of [
+    ['src/main.swift', 'let value = 2\n'],
+    ['src/main.js', 'const value = 2;\n'],
+    ['src/main.ts', 'const value: number = 2;\n'],
+    ['src/main.py', 'def example():\n    return 2\n'],
+    ['src/main.go', 'func example() int { return 2 }\n'],
+  ]) {
+    await page.evaluate(({ path, newText }) => (window as any).diffView.render({
+      id: path, path, oldText: '', newText,
+    }), { path, newText });
+    await expect(page.locator('.hljs-keyword').first()).toBeVisible();
+  }
+});
 test('offline rendering, modes, exact native event, hostile content and recovery', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));

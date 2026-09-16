@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import { validateDocument, validateOptions } from './protocol.ts';
 import { makeDiff } from './patch.ts';
 const base = { id: 'a', path: 'src/main.swift', oldText: 'one\ntwo\n', newText: 'one\nthree\n' };
+test('omitted language is inferred from the real path, with explicit overrides preserved', () => {
+  for (const [path, language] of [
+    ['src/main.swift', 'swift'], ['src/main.js', 'js'], ['src/main.ts', 'ts'],
+    ['src/main.py', 'py'], ['src/main.go', 'go'], ['src/Component.TSX', 'tsx'],
+    ['Dockerfile', 'dockerfile'], ['Makefile', 'makefile'], ['no-extension', 'plaintext'],
+  ]) {
+    assert.equal(makeDiff({ ...base, path })[0].language, language);
+  }
+  assert.equal(makeDiff({ ...base, language: 'python' })[0].language, 'python');
+});
 test('patch preserves content changes and real path independently', () => {
   const doc = validateDocument({ ...base, path: 'a\tb\n" c.swift' });
   const files = makeDiff(doc);

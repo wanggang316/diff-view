@@ -67,3 +67,13 @@ The component never opens an editor itself. Native/browser hosts resolve `openFi
 ## Dependencies
 
 `diff2html` renders the diff and provides syntax highlighting; `diff` computes bounded text diffs. Exact versions are recorded in `package-lock.json`. See [third-party notices](THIRD_PARTY_NOTICES.md). No project license has been selected yet; this prototype is not published.
+
+## Embed a pinned source snapshot
+
+```bash
+npm ci
+npm run build
+node scripts/export-swift-package.mjs /path/to/host/ThirdParty/DiffViewKit
+```
+
+The export includes Swift source, generated Web assets, third-party notices, and an upstream revision record. Consumers can use a local Swift package without a runtime path dependency on this repository. Commit source changes before exporting so the recorded revision identifies the inputs.

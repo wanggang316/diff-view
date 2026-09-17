@@ -112,7 +112,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                         return
                     }
                     self.checkedDOM = true
-                    do { _ = try await webView.evaluateJavaScript("document.querySelector('#open').click()") }
+                    do { _ = try await webView.evaluateJavaScript("Array.from(document.querySelectorAll('.line-num2')).find(el => Number(el.textContent.trim()) > 0).dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))") }
                     catch { self.finish(success: false, message: error.localizedDescription) }
                 }
             }

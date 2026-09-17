@@ -81,3 +81,5 @@ node scripts/export-swift-package.mjs /path/to/host/ThirdParty/DiffViewKit
 ```
 
 The export includes Swift source, generated Web assets, third-party notices, and an upstream revision record. Consumers can use a local Swift package without a runtime path dependency on this repository. Commit source changes before exporting so the recorded revision identifies the inputs.
+
+Native hosts can pass `chrome: "none"` to render code edge-to-edge with no Web toolbar, context bar, or footer. The default `"full"` retains standalone controls. Editor requests come from line-number double-clicks; no file-open button is rendered.

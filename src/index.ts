@@ -12,7 +12,7 @@ declare global {
   }
 }
 const root = document.querySelector<HTMLElement>('#app')!;
-root.innerHTML = `<header class="toolbar"><div class="identity"><span class="mark">±</span><span id="path">Diff View</span><span class="badge">READ ONLY</span></div><div class="controls"><button id="unified" type="button">Unified</button><button id="split" type="button">Split</button><button id="theme" type="button" aria-label="Toggle color theme">◐</button></div></header><div class="context"><span id="summary">Waiting for a document</span><span>Double-click a line number to open in editor</span></div><main id="diff" tabindex="0" aria-label="Code differences"></main><footer><span id="status" role="status" aria-live="polite">Ready</span><button id="open" type="button" disabled>Open file ↗</button></footer>`;
+root.innerHTML = `<header class="toolbar"><div class="identity"><span class="mark">±</span><span id="path">Diff View</span><span class="badge">READ ONLY</span></div><div class="controls"><button id="unified" type="button">Unified</button><button id="split" type="button">Split</button><button id="theme" type="button" aria-label="Toggle color theme">◐</button></div></header><div class="context"><span id="summary">Waiting for a document</span><span>Double-click a line number to open in editor</span></div><main id="diff" tabindex="0" aria-label="Code differences"></main><footer><span id="status" role="status" aria-live="polite">Ready</span></footer>`;
 const target = document.querySelector<HTMLElement>('#diff')!;
 let current: DiffDocument | undefined;
 let options = { ...defaultOptions };
@@ -32,12 +32,13 @@ function requestOpen(side: 'old' | 'new', line?: number) {
 function render(input: unknown, display: unknown = options) {
   if (disposed) return;
   current = undefined;
-  (document.querySelector('#open') as HTMLButtonElement).disabled = true;
   label('#path', 'Diff View');
   label('#summary', '');
   try {
-    const next = validateDocument(input);
     options = validateOptions(display);
+    document.documentElement.dataset.chrome = options.chrome;
+    document.documentElement.dataset.theme = options.theme;
+    const next = validateDocument(input);
     const files = makeDiff(next);
     document.documentElement.dataset.theme = options.theme;
     for (const mode of ['unified', 'split']) document.querySelector(`#${mode}`)!.setAttribute('aria-pressed', String(options.layout === mode));
@@ -56,7 +57,6 @@ function render(input: unknown, display: unknown = options) {
     label('#path', next.path);
     label('#summary', `${files.reduce((n, f) => n + f.addedLines, 0)} additions · ${files.reduce((n, f) => n + f.deletedLines, 0)} deletions`);
     label('#status', 'Offline · Select and copy code');
-    (document.querySelector('#open') as HTMLButtonElement).disabled = false;
     emit({ type: 'rendered', documentID: next.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to render diff.';
@@ -69,7 +69,6 @@ function render(input: unknown, display: unknown = options) {
 }
 for (const layout of ['unified', 'split'] as const) document.querySelector(`#${layout}`)!.addEventListener('click', () => { if (current) render(current, { ...options, layout }); }, { signal: listeners.signal });
 document.querySelector('#theme')!.addEventListener('click', () => { if (current) render(current, { ...options, theme: options.theme === 'dark' ? 'light' : 'dark' }); }, { signal: listeners.signal });
-document.querySelector('#open')!.addEventListener('click', () => requestOpen('new'), { signal: listeners.signal });
 target.addEventListener('dblclick', event => {
   if (!(event.target instanceof Element)) return;
   const cell = event.target.closest('.d2h-code-linenumber, .d2h-code-side-linenumber');

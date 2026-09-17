@@ -27,3 +27,12 @@ let document = DiffDocument(id: "revision-1", path: "src/example.swift", oldText
     let original = DiffDocument(id: "unicode", path: "space file.swift", oldText: "</script>\n", newText: "\\\"${value} 中文\n")
     #expect(try JSONDecoder().decode(DiffDocument.self, from: JSONEncoder().encode(original)) == original)
 }
+
+@Test func nativeChromeRemainsOptInAndEncodesForWeb() throws {
+    #expect(DiffOptions().chrome == "full")
+    let options = DiffOptions(layout: "split", theme: "light", chrome: "none")
+    let data = try JSONEncoder().encode(options)
+    let payload = try JSONSerialization.jsonObject(with: data) as? [String: String]
+    #expect(payload?["chrome"] == "none")
+    #expect(try JSONDecoder().decode(DiffOptions.self, from: data) == options)
+}

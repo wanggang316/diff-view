@@ -8,6 +8,7 @@ export interface DiffDocument {
 export interface DiffOptions {
   layout: 'unified' | 'split';
   theme: 'light' | 'dark';
+  chrome?: 'full' | 'none';
 }
 export interface DiffEvent {
   version: 1;
@@ -18,7 +19,7 @@ export interface DiffEvent {
   line?: number;
   message?: string;
 }
-export const defaultOptions: DiffOptions = { layout: 'unified', theme: 'dark' };
+export const defaultOptions: DiffOptions = { layout: 'unified', theme: 'dark', chrome: 'full' };
 export function validateDocument(input: unknown): DiffDocument {
   if (!input || typeof input !== 'object') throw new Error('Expected a document.');
   const value = input as Record<string, unknown>;
@@ -48,5 +49,8 @@ export function validateOptions(input: unknown): DiffOptions {
   if (!['unified', 'split'].includes(value.layout) || !['light', 'dark'].includes(value.theme)) {
     throw new Error('Invalid display options.');
   }
-  return { layout: value.layout, theme: value.theme };
+  if (value.chrome !== undefined && !['full', 'none'].includes(value.chrome)) {
+    throw new Error('Invalid display chrome.');
+  }
+  return { layout: value.layout, theme: value.theme, chrome: value.chrome ?? 'full' };
 }

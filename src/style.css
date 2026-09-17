@@ -35,3 +35,26 @@ footer { border-top:1px solid var(--line); }
 :root[data-theme=light] .hljs-title,:root[data-theme=light] .hljs-type,:root[data-theme=light] .hljs-built_in { color:#205d8e; }
 :root[data-theme=light] .hljs-number,:root[data-theme=light] .hljs-symbol { color:#875d14; }
 :root[data-theme=light] .hljs-comment { color:#66736d; }
+
+/* Embedded hosts provide their own native controls and window chrome. */
+:root[data-chrome=none] { --bg:#1e1e1e; --panel:#252525; --text:#e5e5e5; --muted:#999; --line:#383838; }
+:root[data-chrome=none][data-theme=light] { --bg:#fff; --panel:#f5f5f5; --text:#262626; --muted:#858585; --line:#e5e5e5; }
+:root[data-chrome=none] .toolbar,
+:root[data-chrome=none] .context,
+:root[data-chrome=none] footer { display:none; }
+:root[data-chrome=none] #diff { padding:0; }
+:root[data-chrome=none] .d2h-file-wrapper { border:0; border-radius:0; }
+:root[data-chrome=none] .d2h-wrapper { color:var(--text); background:var(--bg); --d2h-empty-placeholder-bg-color:var(--panel); --d2h-empty-placeholder-border-color:var(--line); --d2h-bg-color:var(--bg); --d2h-border-color:var(--line); }
+:root[data-chrome=none] .d2h-diff-table,
+:root[data-chrome=none] .d2h-code-line-ctn,
+:root[data-chrome=none] .d2h-code-linenumber,
+:root[data-chrome=none] .d2h-code-side-linenumber { font-family:SFMono-Regular,ui-monospace,Menlo,monospace; font-size:12px; line-height:20px; }
+:root[data-chrome=none] .d2h-info { color:var(--muted); background:var(--panel); border-color:var(--line); }
+:root[data-chrome=none] .d2h-code-linenumber,
+:root[data-chrome=none] .d2h-code-side-linenumber { color:var(--muted); border-color:var(--line); }
+:root[data-chrome=none] .d2h-del { background:rgba(255,69,58,.11); border-color:transparent; }
+:root[data-chrome=none] .d2h-ins { background:rgba(48,209,88,.11); border-color:transparent; }
+:root[data-chrome=none] .d2h-code-line del,
+:root[data-chrome=none] .d2h-code-side-line del { background:rgba(255,69,58,.2); }
+:root[data-chrome=none] .d2h-code-line ins,
+:root[data-chrome=none] .d2h-code-side-line ins { background:rgba(48,209,88,.2); }

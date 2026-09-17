@@ -40,3 +40,11 @@ test('additions and deletions keep correct side line numbers', () => {
 test('computation budget rejects radically different files', () => {
   assert.throws(() => makeDiff({ ...base, oldText: 'a\n'.repeat(2500), newText: 'b\n'.repeat(2500) }), /budget|limit/);
 });
+
+test('display chrome defaults to full and rejects unsupported values', () => {
+  assert.equal(validateOptions({ layout: 'unified', theme: 'dark' }).chrome, 'full');
+  assert.equal(validateOptions({ layout: 'split', theme: 'light', chrome: 'none' }).chrome, 'none');
+  for (const chrome of ['compact', null, 1]) {
+    assert.throws(() => validateOptions({ layout: 'unified', theme: 'dark', chrome }));
+  }
+});

@@ -50,8 +50,9 @@ The renderer is behind a stable document/event protocol so a later Monaco implem
 | language | Optional highlighting language identifier; unsupported languages may remain plain text |
 | layout | unified or split |
 | theme | light or dark |
+| chrome | full (default) or none; none hides all Web controls for native hosts |
 
-Events have `version: 1` and type `ready`, `rendered`, `openFile`, or `error`. `openFile` includes documentID, path, side (old/new), and an optional positive, one-based line. The file-open button sends no line. Double-clicking a line number includes its side-specific line.
+Events have `version: 1` and type `ready`, `rendered`, `openFile`, or `error`. `openFile` includes documentID, path, side (old/new), and an optional positive, one-based line. Double-clicking a line number includes its side-specific line.
 
 A native host validates message origin, version, current document identity, matching path, side, and line bounds. The component does not treat a path from JavaScript as permission to read or open arbitrary files. The host additionally resolves it against the original file record and execution host.
 
@@ -73,9 +74,7 @@ Limits are per side: 1,000,000 JavaScript UTF-16 code units, 10,000 lines, no NU
 
 | Host mode | Endpoints |
 |---|---|
-| Changes / All | HEAD -> working directory; include untracked files separately |
-| Changes / Staged | HEAD -> index |
-| Changes / Unstaged | Index -> working directory; include untracked files separately |
+| Changes | HEAD -> working directory; include untracked files separately |
 | Outgoing | merge-base(selected base, HEAD) -> HEAD |
 
 Outgoing means all committed branch changes relative to main or the PR target, not unpushed commits. Push does not clear it. Uncommitted modifications remain in Changes. Base priority is explicit user selection, PR target, then repository remote default branch; unresolved references require an explicit selection/error state.
@@ -92,11 +91,11 @@ For reproducible Git semantics, host reads must document encoding, line-ending a
 
 ### UI and lifecycle
 
-Codans embeds the component in a resizable right-side panel with an expanded reading mode. It owns Changes/Outgoing tabs and the file list and keeps a stable renderer instance while loading or displaying notices. Terminal sessions retain their ownership; closing the panel restores terminal focus. Existing external Git-client commands remain separate.
+Codans embeds the component in an independent window per worktree. It owns native Changes/Outgoing and layout controls, the file list, and appearance. It uses `chrome: "none"` to keep the Web surface limited to code. Opening and closing the window does not resize terminal panes. Existing external Git-client commands remain separate.
 
 Host generation tokens reject late worktree, file, scope, and base results. Committed content uses immutable Git object IDs; mutable working content is read again when refreshed.
 
-The visible host panel refreshes local Git state every two seconds and supports manual refresh. It does not fetch remote refs automatically. A working-directory read is not an atomic repository snapshot. The component has no polling system of its own.
+The visible host window refreshes local Git state every two seconds and supports manual refresh. It does not fetch remote refs automatically. A working-directory read is not an atomic repository snapshot. The component has no polling system of its own.
 
 The host remembers selected file, comparison scope, and base per worktree for the application session. Scroll/selection restoration across document updates is a future component API; current re-render resets both.
 
@@ -110,9 +109,9 @@ Codans DiffEditorClient and EditorService own configured-editor resolution, file
 
 1. Independent prototype: protocol, bounded renderer, browser demo, offline WKWebView wrapper, native demo, adversarial input tests, native bridge smoke test.
 2. Component hardening: measured large-file behavior, cancellation strategy if computation becomes asynchronous, context expansion, search, selection/scroll restoration, accessibility audit, reproducible resource release packaging.
-3. Codans integration: Git comparison APIs, side panel, file inventory, refresh invalidation, revision-aware editor jumping, end-to-end local/SSH acceptance tests.
+3. Codans integration: Git comparison APIs, independent window, file inventory, refresh invalidation, revision-aware editor jumping, end-to-end local/SSH acceptance tests.
 
-Stage 1 and the Codans local integration are implemented. Codans consumes code snapshot `5df58273a300e247491aeafede9d237e84b5d716`; documentation-only commits do not change that pin. Stage 2 remains future work. Local GUI core cases and final 900px / wide-window layout cases have passed, including expanded-sidebar hiding and restoration. Live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
+Stage 1 and the Codans local integration are implemented. The host snapshot records its exact component revision in `ThirdParty/DiffViewKit/UPSTREAM.md`. Stage 2 remains future work. Local GUI core cases and final 900px / wide-window layout cases have passed, including expanded-sidebar hiding and restoration. Live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
 
 ## Acceptance criteria
 

@@ -17,7 +17,7 @@ DiffView(
         newText: newSource,
         language: "swift"
     ),
-    options: DiffOptions(layout: "unified", theme: "dark")
+    options: DiffOptions(layout: "unified", theme: "dark", chrome: "none")
 ) { event in
     if event.type == "openFile" {
         // Resolve this validated request through the host's editor service.
@@ -59,10 +59,12 @@ swift run diff-view-demo --lifecycle-smoke-test
 ```
 
 The smoke test starts a real macOS window, verifies `ready` then `rendered`
-through the native bridge, checks rendered source text in the DOM, clicks the
-file-open button to validate its native callback, and exits
+through the native bridge, checks rendered source text in the DOM, double-clicks a
+line number to validate its native callback, and exits
 within 15 seconds. It requires an active macOS graphical session. Unit tests
 cover bridge identity, version, path and line validation. They do not replace
 visual QA, editor integration tests, or large-file performance measurement.
 
 The layout smoke test checks same-file and new-document updates after selecting Split, then verifies that changed host options override the selection. The lifecycle smoke test removes and recreates the renderer twenty times inside nested HSplitViews, checking native events, DOM text, and view bounds. Codans local GUI results and untested remote cases are summarized in [verification](verification.md).
+
+Set `chrome: "none"` when the host provides native window controls. This removes the Web header, context bar, and footer, and renders code edge-to-edge. The default `"full"` retains standalone layout and theme controls. The Web UI has no file-open button; double-click a line number to request an editor jump.

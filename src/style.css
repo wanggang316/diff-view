@@ -17,7 +17,9 @@ button:disabled { opacity:.4; cursor:default; }
 .context,footer { color:var(--muted); font-size:11px; }
 .context { border-bottom:1px solid var(--line); }
 footer { border-top:1px solid var(--line); }
-#diff { flex:1; min-height:0; overflow:auto; padding:12px; }
+/* diff2html positions line numbers absolutely so they stay pinned during horizontal scroll; the
+   vertical scroller must be their containing block or they stay put while the code rows scroll. */
+#diff { position:relative; flex:1; min-height:0; overflow:auto; padding:12px; }
 .empty { padding:60px 24px; color:var(--muted); text-align:center; }
 .d2h-wrapper { margin:0; }
 .d2h-file-wrapper { border-color:var(--line); border-radius:3px; margin-bottom:0; }

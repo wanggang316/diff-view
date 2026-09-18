@@ -101,3 +101,35 @@ test('native chrome is edge-to-edge, follows host options and retains exact line
   await expect(page.locator('.toolbar')).toBeVisible();
   await expect(page.locator('footer')).toBeVisible();
 });
+
+test('line numbers stay aligned with their code rows while the diff scrolls', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 400 });
+  await page.goto('/demo.html');
+  const lines = Array.from({ length: 120 }, (_, index) => `let value${index} = ${index}`);
+  const oldText = `${lines.join('\n')}\n`;
+  const newText = `${lines.map(line => `${line} + 1 // ${'x'.repeat(300)}`).join('\n')}\n`;
+  for (const chrome of ['none', 'full']) {
+    for (const layout of ['unified', 'split']) {
+      await page.evaluate(({ oldText, newText, layout, chrome }) => (window as any).diffView.render({
+        id: `scroll-${chrome}-${layout}`, path: 'Scroll.swift', oldText, newText,
+      }, { layout, theme: 'dark', chrome }), { oldText, newText, layout, chrome });
+      await page.locator('#diff').evaluate(el => { el.scrollTop = 900; });
+      const drift = await page.locator('#diff').evaluate(el => {
+        const offsets = [...el.querySelectorAll('.d2h-code-linenumber, .d2h-code-side-linenumber')].map(cell =>
+          Math.abs(cell.getBoundingClientRect().top - cell.closest('tr')!.getBoundingClientRect().top));
+        return { scrollTop: el.scrollTop, max: Math.max(...offsets) };
+      });
+      expect(drift.scrollTop, `${chrome}/${layout} scrolled`).toBeGreaterThan(0);
+      expect(drift.max, `${chrome}/${layout} line-number drift`).toBeLessThan(1);
+      const pinned = await page.locator('#diff').evaluate(el => {
+        const scroller = [...el.querySelectorAll<HTMLElement>('.d2h-file-side-diff, .d2h-file-diff')].at(-1)!;
+        const cell = scroller.querySelector('.d2h-code-linenumber, .d2h-code-side-linenumber')!;
+        const before = cell.getBoundingClientRect().left;
+        scroller.scrollLeft = 200;
+        return { scrollLeft: scroller.scrollLeft, shift: Math.abs(cell.getBoundingClientRect().left - before) };
+      });
+      expect(pinned.scrollLeft, `${chrome}/${layout} scrolled horizontally`).toBeGreaterThan(0);
+      expect(pinned.shift, `${chrome}/${layout} line numbers pinned horizontally`).toBeLessThan(1);
+    }
+  }
+});

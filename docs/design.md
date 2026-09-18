@@ -1,6 +1,6 @@
 # Independent Diff View
 
-Status: component implemented and integrated into Codans through a vendored Swift-package snapshot. Local GUI core flows are verified; live SSH and live-PR GUI verification remain outstanding.
+Status: component implemented and consumed by Codans as a Swift package pinned to a release tag. Local GUI core flows are verified; live SSH and live-PR GUI verification remain outstanding.
 
 ## Scope
 
@@ -111,7 +111,7 @@ Codans DiffEditorClient and EditorService own configured-editor resolution, file
 2. Component hardening: measured large-file behavior, cancellation strategy if computation becomes asynchronous, context expansion, search, selection/scroll restoration, accessibility audit, reproducible resource release packaging.
 3. Codans integration: Git comparison APIs, independent window, file inventory, refresh invalidation, revision-aware editor jumping, end-to-end local/SSH acceptance tests.
 
-Stage 1 and the Codans local integration are implemented. The host snapshot records its exact component revision in `ThirdParty/DiffViewKit/UPSTREAM.md`. Stage 2 remains future work. Local GUI core cases and final 900px / wide-window layout cases have passed, including expanded-sidebar hiding and restoration. Live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
+Stage 1 and the Codans local integration are implemented. The host pins the component by release tag in its Swift package manifest and `Package.resolved`. Stage 2 remains future work. Local GUI core cases and final 900px / wide-window layout cases have passed, including expanded-sidebar hiding and restoration. Live SSH / live-PR GUI cases have not run. The host repository records its acceptance cases in `docs/user-tests/git-diff-viewer.md`.
 
 ## Acceptance criteria
 

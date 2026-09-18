@@ -8,7 +8,8 @@
     "dev": "npm run build && node scripts/serve.mjs",
     "test": "tsx --test src/*.test.ts",
     "test:browser": "playwright test",
-    "check": "npm test && npm run build && npm run test:browser"
+    "check": "npm test && npm run build && npm run test:browser",
+    "check:resources": "npm run build && git diff --exit-code -- Sources/DiffViewKit/Resources/Web"
   },
   "dependencies": { "diff": "9.0.0", "diff2html": "3.4.56" },
   "devDependencies": { "@playwright/test": "^1.55.0", "@types/node": "^22.0.0", "esbuild": "^0.25.0", "tsx": "^4.20.0", "typescript": "^5.9.0" }

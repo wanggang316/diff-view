@@ -1,6 +1,6 @@
 # Native macOS host
 
-Status: integrated into Codans through a vendored Swift-package snapshot. The standalone demo remains independently runnable. Editor launching and Git operations belong to the host, not DiffViewKit.
+Status: consumed by Codans as a Swift package pinned to a release tag. The standalone demo remains independently runnable. Editor launching and Git operations belong to the host, not DiffViewKit.
 
 `DiffViewKit` is a Swift 6 package for macOS 14 and later. It exposes a SwiftUI
 `DiffView` backed by WKWebView. Web assets are copied into the SwiftPM resource

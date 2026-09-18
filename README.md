@@ -2,7 +2,7 @@
 
 An independent, read-only code diff component for browser hosts and native macOS applications. The Web renderer is bundled locally and embedded by a Swift package using `WKWebView`. No Git executable, network service, Codans model, or repository access is required.
 
-**Status:** implemented and embedded in Codans through a vendored Swift-package snapshot. Codans owns Git reads, comparison selection, and editor launching; this component remains independent. Large-file virtualization, search UI, context expansion, and a published release are not implemented. See [verification](docs/verification.md) for tested flows and remaining limits.
+**Status:** implemented and consumed by Codans as a Swift package pinned to a release tag. Codans owns Git reads, comparison selection, and editor launching; this component remains independent. Large-file virtualization, search UI, and context expansion are not implemented. See [verification](docs/verification.md) for tested flows and remaining limits.
 
 ## Run
 
@@ -20,7 +20,7 @@ Open `http://127.0.0.1:4173/demo.html`. The server is a browser development conv
 swift run diff-view-demo
 ```
 
-Build the Web resources before building Swift. Generated resources are not committed; a source checkout needs the npm build step. A future release must ship verified, reproducible resources in its source distribution.
+The generated Web resources in `Sources/DiffViewKit/Resources/Web` are committed, so a Swift package checkout builds without npm. The build is reproducible: commit rebuilt resources together with every source change, and `npm run check:resources` fails when the committed resources differ from a fresh build.
 
 ## Documents
 
@@ -70,9 +70,19 @@ The component never opens an editor itself. Native/browser hosts resolve `openFi
 
 ## Dependencies
 
-`diff2html` renders the diff and provides syntax highlighting; `diff` computes bounded text diffs. Exact versions are recorded in `package-lock.json`. See [third-party notices](THIRD_PARTY_NOTICES.md). No project license has been selected yet; this prototype is not published.
+`diff2html` renders the diff and provides syntax highlighting; `diff` computes bounded text diffs. Exact versions are recorded in `package-lock.json`. See [third-party notices](THIRD_PARTY_NOTICES.md). No project license has been selected yet.
 
-## Embed a pinned source snapshot
+## Use from a Swift package
+
+```swift
+.package(url: "https://github.com/wanggang316/diff-view", exact: "0.1.0")
+// target dependency
+.product(name: "DiffViewKit", package: "diff-view")
+```
+
+A tag pins both the Swift source and the generated Web resources. Before tagging, run `npm run check:resources` so the tagged resources match the tagged source.
+
+Hosts that prefer a vendored copy can export a pinned snapshot instead:
 
 ```bash
 npm ci

@@ -25,7 +25,18 @@ footer { border-top:1px solid var(--line); }
 .d2h-file-wrapper { border-color:var(--line); border-radius:3px; margin-bottom:0; }
 .d2h-file-header { display:none; }
 .d2h-code-linenumber,.d2h-code-side-linenumber { cursor:pointer; user-select:none; }
-.d2h-code-line-ctn { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }
+/* Code scrolls horizontally beneath the pinned line numbers, and most row tints are translucent.
+   Paint an opaque base on the cell, then repaint its own tint above it (::before inherits the
+   cell's background color), so the gutter looks unchanged and scrolled code never shows through. */
+.d2h-wrapper { --gutter-base:var(--bg); }
+.d2h-dark-color-scheme { --gutter-base:var(--d2h-dark-bg-color); }
+.d2h-code-linenumber,.d2h-code-side-linenumber { z-index:0; background-image:linear-gradient(var(--gutter-base),var(--gutter-base)); }
+.d2h-code-linenumber::before,.d2h-code-side-linenumber::before { content:''; position:absolute; inset:0; z-index:-1; background-color:inherit; }
+/* Line numbers are positioned out of their row, so every cell must resolve to the same height:
+   one shared font and line height, equal vertical padding, and no inline-block baseline gap. */
+.d2h-diff-table,.d2h-code-line-ctn,.d2h-code-linenumber,.d2h-code-side-linenumber { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }
+.d2h-diff-table td { padding-top:1px; padding-bottom:1px; }
+.d2h-code-line,.d2h-code-side-line,.d2h-code-line-ctn { vertical-align:top; }
 @media (max-width:600px) { .badge,.context>span:last-child { display:none; } .toolbar { flex-wrap:wrap; } .identity { min-width:100%; } #diff { padding:4px; } }
 .hljs-keyword,.hljs-selector-tag,.hljs-literal { color:#eea5ad; }
 .hljs-string,.hljs-regexp { color:#c6d5a1; }
@@ -46,16 +57,16 @@ footer { border-top:1px solid var(--line); }
 :root[data-chrome=none] footer { display:none; }
 :root[data-chrome=none] #diff { padding:0; }
 :root[data-chrome=none] .d2h-file-wrapper { border:0; border-radius:0; }
-:root[data-chrome=none] .d2h-wrapper { color:var(--text); background:var(--bg); --d2h-empty-placeholder-bg-color:var(--panel); --d2h-empty-placeholder-border-color:var(--line); --d2h-bg-color:var(--bg); --d2h-border-color:var(--line); }
+:root[data-chrome=none] .d2h-wrapper { color:var(--text); background:var(--bg); --d2h-empty-placeholder-bg-color:var(--panel); --d2h-empty-placeholder-border-color:var(--line); --d2h-bg-color:var(--bg); --d2h-border-color:var(--line); --gutter-base:var(--bg); }
 :root[data-chrome=none] .d2h-diff-table,
 :root[data-chrome=none] .d2h-code-line-ctn,
 :root[data-chrome=none] .d2h-code-linenumber,
 :root[data-chrome=none] .d2h-code-side-linenumber { font-family:SFMono-Regular,ui-monospace,Menlo,monospace; font-size:12px; line-height:20px; }
-:root[data-chrome=none] .d2h-info { color:var(--muted); background:var(--panel); border-color:var(--line); }
+:root[data-chrome=none] .d2h-info { color:var(--muted); background-color:var(--panel); border-color:var(--line); }
 :root[data-chrome=none] .d2h-code-linenumber,
 :root[data-chrome=none] .d2h-code-side-linenumber { color:var(--muted); border-color:var(--line); }
-:root[data-chrome=none] .d2h-del { background:rgba(255,69,58,.11); border-color:transparent; }
-:root[data-chrome=none] .d2h-ins { background:rgba(48,209,88,.11); border-color:transparent; }
+:root[data-chrome=none] .d2h-del { background-color:rgba(255,69,58,.11); border-color:transparent; }
+:root[data-chrome=none] .d2h-ins { background-color:rgba(48,209,88,.11); border-color:transparent; }
 :root[data-chrome=none] .d2h-code-line del,
 :root[data-chrome=none] .d2h-code-side-line del { background:rgba(255,69,58,.2); }
 :root[data-chrome=none] .d2h-code-line ins,

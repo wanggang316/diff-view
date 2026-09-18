@@ -106,30 +106,44 @@ test('line numbers stay aligned with their code rows while the diff scrolls', as
   await page.setViewportSize({ width: 900, height: 400 });
   await page.goto('/demo.html');
   const lines = Array.from({ length: 120 }, (_, index) => `let value${index} = ${index}`);
-  const oldText = `${lines.join('\n')}\n`;
-  const newText = `${lines.map(line => `${line} + 1 // ${'x'.repeat(300)}`).join('\n')}\n`;
+  const tail = ` // ${'x'.repeat(300)}`;
+  const oldText = `${lines.map(line => `${line}${tail}`).join('\n')}\n`;
+  const newText = `${lines.map(line => `${line} + 1${tail}`).join('\n')}\n`;
   for (const chrome of ['none', 'full']) {
     for (const layout of ['unified', 'split']) {
       await page.evaluate(({ oldText, newText, layout, chrome }) => (window as any).diffView.render({
         id: `scroll-${chrome}-${layout}`, path: 'Scroll.swift', oldText, newText,
       }, { layout, theme: 'dark', chrome }), { oldText, newText, layout, chrome });
       await page.locator('#diff').evaluate(el => { el.scrollTop = 900; });
+      // Line numbers sit outside the row, so they must match its top and height or code shows in the gaps.
       const drift = await page.locator('#diff').evaluate(el => {
-        const offsets = [...el.querySelectorAll('.d2h-code-linenumber, .d2h-code-side-linenumber')].map(cell =>
-          Math.abs(cell.getBoundingClientRect().top - cell.closest('tr')!.getBoundingClientRect().top));
-        return { scrollTop: el.scrollTop, max: Math.max(...offsets) };
+        const cells = [...el.querySelectorAll('.d2h-code-linenumber, .d2h-code-side-linenumber')].map(cell =>
+          [cell.getBoundingClientRect(), cell.closest('tr')!.getBoundingClientRect()]);
+        return {
+          scrollTop: el.scrollTop,
+          top: Math.max(...cells.map(([cell, row]) => Math.abs(cell.top - row.top))),
+          height: Math.max(...cells.map(([cell, row]) => Math.abs(cell.height - row.height))),
+        };
       });
       expect(drift.scrollTop, `${chrome}/${layout} scrolled`).toBeGreaterThan(0);
-      expect(drift.max, `${chrome}/${layout} line-number drift`).toBeLessThan(1);
-      const pinned = await page.locator('#diff').evaluate(el => {
-        const scroller = [...el.querySelectorAll<HTMLElement>('.d2h-file-side-diff, .d2h-file-diff')].at(-1)!;
-        const cell = scroller.querySelector('.d2h-code-linenumber, .d2h-code-side-linenumber')!;
-        const before = cell.getBoundingClientRect().left;
-        scroller.scrollLeft = 200;
-        return { scrollLeft: scroller.scrollLeft, shift: Math.abs(cell.getBoundingClientRect().left - before) };
+      expect(drift.top, `${chrome}/${layout} line-number drift`).toBeLessThan(1);
+      expect(drift.height, `${chrome}/${layout} line-number height`).toBeLessThan(0.5);
+      // Code scrolls horizontally beneath the pinned gutter; the gutter must not move or let code show through.
+      const scroller = page.locator('.d2h-file-side-diff, .d2h-file-diff').last();
+      const cell = (await scroller.locator('.d2h-code-linenumber, .d2h-code-side-linenumber').first().boundingBox())!;
+      const view = (await page.locator('#diff').boundingBox())!;
+      const gutter = { x: cell.x, y: view.y, width: cell.width, height: view.height };
+      const before = await page.screenshot({ clip: gutter });
+      const pinned = await scroller.evaluate(el => {
+        const cell = el.querySelector('.d2h-code-linenumber, .d2h-code-side-linenumber')!;
+        const left = cell.getBoundingClientRect().left;
+        el.scrollLeft = 200;
+        return { scrollLeft: el.scrollLeft, shift: Math.abs(cell.getBoundingClientRect().left - left) };
       });
       expect(pinned.scrollLeft, `${chrome}/${layout} scrolled horizontally`).toBeGreaterThan(0);
       expect(pinned.shift, `${chrome}/${layout} line numbers pinned horizontally`).toBeLessThan(1);
+      const after = await page.screenshot({ clip: gutter });
+      expect(after.equals(before), `${chrome}/${layout} gutter unchanged by horizontal scroll`).toBe(true);
     }
   }
 });

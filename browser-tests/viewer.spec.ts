@@ -87,6 +87,9 @@ test('native chrome is edge-to-edge, follows host options and retains exact line
     }
     expect(await page.locator('#diff').evaluate(el => el.getBoundingClientRect().top)).toBe(0);
     expect(await page.locator('#diff').evaluate(el => getComputedStyle(el).padding)).toBe('0px');
+    // The row's tint says added or removed, so the leading +/- column is not drawn at all.
+    await expect(page.locator('.d2h-code-line-prefix').first()).toBeHidden();
+    expect(await page.locator('#diff').innerText()).not.toContain('+let value');
     const line = layout === 'unified' ? page.locator('.line-num2').filter({ hasText: /^\s*1\s*$/ })
       : page.locator('.d2h-file-side-diff').last().locator('.d2h-code-side-linenumber').filter({ hasText: /^\s*1\s*$/ });
     await line.first().dblclick();

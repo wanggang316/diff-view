@@ -24,6 +24,9 @@ footer { border-top:1px solid var(--line); }
 .d2h-wrapper { margin:0; }
 .d2h-file-wrapper { border-color:var(--line); border-radius:3px; margin-bottom:0; }
 .d2h-file-header { display:none; }
+/* The row's tint already says added or removed, so the leading +/- only repeats it. Hiding the
+   column gives the character back to the code; every row loses the same one, so they stay aligned. */
+.d2h-code-line-prefix { display:none; }
 .d2h-code-linenumber,.d2h-code-side-linenumber { cursor:pointer; user-select:none; }
 /* Code scrolls horizontally beneath the pinned line numbers, and most row tints are translucent.
    Paint an opaque base on the cell, then repaint its own tint above it (::before inherits the

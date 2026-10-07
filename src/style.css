@@ -39,6 +39,11 @@ footer { border-top:1px solid var(--line); }
 .diff-gutter td { white-space:nowrap; }
 .diff-gutter td::after { content:'\200b'; }
 .d2h-code-line,.d2h-code-side-line { padding:0 .5em; width:calc(100% - 1em); }
+/* diff2html scopes unified change tints to .d2h-file-diff, which the unified gutter now sits beside. */
+.d2h-file-wrapper > .diff-pane .d2h-del.d2h-change { background-color:var(--d2h-change-del-color); }
+.d2h-file-wrapper > .diff-pane .d2h-ins.d2h-change { background-color:var(--d2h-change-ins-color); }
+.d2h-dark-color-scheme .d2h-file-wrapper > .diff-pane .d2h-del.d2h-change { background-color:var(--d2h-dark-change-del-color); }
+.d2h-dark-color-scheme .d2h-file-wrapper > .diff-pane .d2h-ins.d2h-change { background-color:var(--d2h-dark-change-ins-color); }
 /* Line numbers sit in a separate table, so every cell must resolve to the same height:
    one shared font and line height, equal vertical padding, and no inline-block baseline gap. */
 .d2h-diff-table,.d2h-code-line-ctn,.d2h-code-linenumber,.d2h-code-side-linenumber { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }

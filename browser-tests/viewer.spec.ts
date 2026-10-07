@@ -124,15 +124,23 @@ test('line numbers stay aligned with their code rows while the diff scrolls', as
           const code = [...pane.querySelectorAll('.d2h-diff-tbody > tr')].map(row => row.getBoundingClientRect());
           return [...pane.querySelectorAll('.diff-gutter tr')].map((row, index) => [row.getBoundingClientRect(), code[index]] as const);
         });
+        // The gutter cell carries its row's tint, so both tables must resolve the same background.
+        const tints = [...el.querySelectorAll('.diff-pane')].flatMap(pane => {
+          const code = [...pane.querySelectorAll('.d2h-diff-tbody > tr > td:last-child')];
+          return [...pane.querySelectorAll('.diff-gutter td')].filter((cell, index) =>
+            getComputedStyle(cell).backgroundColor !== getComputedStyle(code[index]).backgroundColor);
+        });
         return {
           scrollTop: el.scrollTop,
           rows: rows.length,
+          tints: tints.length,
           top: Math.max(...rows.map(([cell, row]) => row ? Math.abs(cell.top - row.top) : Infinity)),
           height: Math.max(...rows.map(([cell, row]) => row ? Math.abs(cell.height - row.height) : Infinity)),
         };
       });
       expect(drift.scrollTop, `${chrome}/${layout} scrolled`).toBeGreaterThan(0);
       expect(drift.rows, `${chrome}/${layout} gutter rows`).toBeGreaterThan(0);
+      expect(drift.tints, `${chrome}/${layout} gutter tints differ from their rows`).toBe(0);
       expect(drift.top, `${chrome}/${layout} line-number drift`).toBeLessThan(1);
       expect(drift.height, `${chrome}/${layout} line-number height`).toBeLessThan(0.5);
       // Positioned cells make WebKit move each one on every scroll frame; the gutter must stay in flow.

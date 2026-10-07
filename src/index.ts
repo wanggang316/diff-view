@@ -29,6 +29,21 @@ function requestOpen(side: 'old' | 'new', line?: number) {
   emit({ type: 'openFile', documentID: current.id, path: current.path, side, ...(line ? { line } : {}) });
   label('#status', `Requested editor · ${side}${line ? `:${line}` : ''}`);
 }
+// See the gutter rule in style.css: each scroller's line numbers move into an in-flow table beside it.
+function pinGutters(root: HTMLElement) {
+  for (const scroller of root.querySelectorAll<HTMLElement>('.d2h-file-diff, .d2h-file-side-diff')) {
+    const body = document.createElement('tbody');
+    for (const row of scroller.querySelectorAll('.d2h-diff-tbody > tr')) {
+      const line = document.createElement('tr');
+      line.append(row.querySelector(':scope > .d2h-code-linenumber, :scope > .d2h-code-side-linenumber') ?? document.createElement('td'));
+      body.append(line);
+    }
+    const table = document.createElement('table'); table.className = 'd2h-diff-table'; table.append(body);
+    const gutter = document.createElement('div'); gutter.className = 'diff-gutter'; gutter.append(table);
+    const pane = document.createElement('div'); pane.className = 'diff-pane';
+    scroller.replaceWith(pane); pane.append(gutter, scroller);
+  }
+}
 function render(input: unknown, display: unknown = options) {
   if (disposed) return;
   current = undefined;
@@ -52,6 +67,7 @@ function render(input: unknown, display: unknown = options) {
         colorScheme: options.theme === 'dark' ? ColorSchemeType.DARK : ColorSchemeType.LIGHT,
       });
       ui.draw();
+      pinGutters(target);
     }
     current = next;
     label('#path', next.path);
@@ -79,8 +95,8 @@ target.addEventListener('dblclick', event => {
     side = explicit?.classList.contains('line-num1') ? 'old' : 'new';
     raw = (explicit ?? cell.querySelector('.line-num2'))?.textContent ?? null;
   } else {
-    const wrapper = cell.closest('.d2h-file-side-diff');
-    side = wrapper === wrapper?.parentElement?.querySelector('.d2h-file-side-diff') ? 'old' : 'new';
+    const pane = cell.closest('.diff-pane');
+    side = pane === pane?.parentElement?.querySelector('.diff-pane') ? 'old' : 'new';
     raw = cell.textContent;
   }
   const line = Number(raw?.trim());

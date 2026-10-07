@@ -42,7 +42,7 @@ test('offline rendering, modes, exact native event, hostile content and recovery
   await expect(page.locator('#path')).toHaveText('Sources/WorktreeService.swift');
   await expect(page.locator('.d2h-file-side-diff')).toHaveCount(2);
   await expect(page.locator('.hljs-keyword').first()).toBeVisible();
-  await page.locator('.d2h-file-side-diff').last().locator('.d2h-code-side-linenumber').filter({ hasText: /^\s*8\s*$/ }).first().dblclick();
+  await page.locator('.d2h-files-diff > .diff-pane').last().locator('.d2h-code-side-linenumber').filter({ hasText: /^\s*8\s*$/ }).first().dblclick();
   expect(await page.evaluate(() => (window as any).messages.findLast((event: any) => event.type === 'openFile'))).toMatchObject({ side: 'new', line: 8 });
   await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Unified', exact: true }).click();
@@ -91,7 +91,7 @@ test('native chrome is edge-to-edge, follows host options and retains exact line
     await expect(page.locator('.d2h-code-line-prefix').first()).toBeHidden();
     expect(await page.locator('#diff').innerText()).not.toContain('+let value');
     const line = layout === 'unified' ? page.locator('.line-num2').filter({ hasText: /^\s*1\s*$/ })
-      : page.locator('.d2h-file-side-diff').last().locator('.d2h-code-side-linenumber').filter({ hasText: /^\s*1\s*$/ });
+      : page.locator('.d2h-files-diff > .diff-pane').last().locator('.d2h-code-side-linenumber').filter({ hasText: /^\s*1\s*$/ });
     await line.first().dblclick();
     expect(await page.evaluate(() => (window as any).messages.findLast((event: any) => event.type === 'openFile')))
       .toMatchObject({ documentID: 'native', path: 'Example.swift', side: 'new', line: 1 });
@@ -108,7 +108,7 @@ test('native chrome is edge-to-edge, follows host options and retains exact line
 test('line numbers stay aligned with their code rows while the diff scrolls', async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 400 });
   await page.goto('/demo.html');
-  const lines = Array.from({ length: 120 }, (_, index) => `let value${index} = ${index}`);
+  const lines = Array.from({ length: 1_010 }, (_, index) => `let value${index} = ${index}`);
   const tail = ` // ${'x'.repeat(300)}`;
   const oldText = `${lines.map(line => `${line}${tail}`).join('\n')}\n`;
   const newText = `${lines.map(line => `${line} + 1${tail}`).join('\n')}\n`;
@@ -118,27 +118,44 @@ test('line numbers stay aligned with their code rows while the diff scrolls', as
         id: `scroll-${chrome}-${layout}`, path: 'Scroll.swift', oldText, newText,
       }, { layout, theme: 'dark', chrome }), { oldText, newText, layout, chrome });
       await page.locator('#diff').evaluate(el => { el.scrollTop = 900; });
-      // Line numbers sit outside the row, so they must match its top and height or code shows in the gaps.
+      // Line numbers sit in a separate gutter table, so they must match their code row's top and height.
       const drift = await page.locator('#diff').evaluate(el => {
-        const cells = [...el.querySelectorAll('.d2h-code-linenumber, .d2h-code-side-linenumber')].map(cell =>
-          [cell.getBoundingClientRect(), cell.closest('tr')!.getBoundingClientRect()]);
+        const rows = [...el.querySelectorAll('.diff-pane')].flatMap(pane => {
+          const code = [...pane.querySelectorAll('.d2h-diff-tbody > tr')].map(row => row.getBoundingClientRect());
+          return [...pane.querySelectorAll('.diff-gutter tr')].map((row, index) => [row.getBoundingClientRect(), code[index]] as const);
+        });
+        // The gutter cell carries its row's tint, so both tables must resolve the same background.
+        const tints = [...el.querySelectorAll('.diff-pane')].flatMap(pane => {
+          const code = [...pane.querySelectorAll('.d2h-diff-tbody > tr > td:last-child')];
+          return [...pane.querySelectorAll('.diff-gutter td')].filter((cell, index) =>
+            getComputedStyle(cell).backgroundColor !== getComputedStyle(code[index]).backgroundColor);
+        });
         return {
           scrollTop: el.scrollTop,
-          top: Math.max(...cells.map(([cell, row]) => Math.abs(cell.top - row.top))),
-          height: Math.max(...cells.map(([cell, row]) => Math.abs(cell.height - row.height))),
+          rows: rows.length,
+          tints: tints.length,
+          top: Math.max(...rows.map(([cell, row]) => row ? Math.abs(cell.top - row.top) : Infinity)),
+          height: Math.max(...rows.map(([cell, row]) => row ? Math.abs(cell.height - row.height) : Infinity)),
         };
       });
       expect(drift.scrollTop, `${chrome}/${layout} scrolled`).toBeGreaterThan(0);
+      expect(drift.rows, `${chrome}/${layout} gutter rows`).toBeGreaterThan(0);
+      expect(drift.tints, `${chrome}/${layout} gutter tints differ from their rows`).toBe(0);
       expect(drift.top, `${chrome}/${layout} line-number drift`).toBeLessThan(1);
       expect(drift.height, `${chrome}/${layout} line-number height`).toBeLessThan(0.5);
-      // Code scrolls horizontally beneath the pinned gutter; the gutter must not move or let code show through.
-      const scroller = page.locator('.d2h-file-side-diff, .d2h-file-diff').last();
-      const cell = (await scroller.locator('.d2h-code-linenumber, .d2h-code-side-linenumber').first().boundingBox())!;
+      // Positioned cells make WebKit move each one on every scroll frame; the gutter must stay in flow.
+      expect(await page.locator('#diff').evaluate(el => [...el.querySelectorAll('.d2h-code-linenumber, .d2h-code-side-linenumber')]
+        .filter(cell => getComputedStyle(cell).position !== 'static' || cell.closest('.d2h-file-diff, .d2h-file-side-diff')).length),
+        `${chrome}/${layout} line numbers in flow outside the code scroller`).toBe(0);
+      // Code scrolls horizontally beside the pinned gutter; the gutter must not move or let code show through.
+      const pane = page.locator('.diff-pane').last();
+      const scroller = pane.locator('.d2h-file-side-diff, .d2h-file-diff');
+      const cell = (await pane.locator('.d2h-code-linenumber, .d2h-code-side-linenumber').first().boundingBox())!;
       const view = (await page.locator('#diff').boundingBox())!;
       const gutter = { x: cell.x, y: view.y, width: cell.width, height: view.height };
       const before = await page.screenshot({ clip: gutter });
       const pinned = await scroller.evaluate(el => {
-        const cell = el.querySelector('.d2h-code-linenumber, .d2h-code-side-linenumber')!;
+        const cell = el.parentElement!.querySelector('.d2h-code-linenumber, .d2h-code-side-linenumber')!;
         const left = cell.getBoundingClientRect().left;
         el.scrollLeft = 200;
         return { scrollLeft: el.scrollLeft, shift: Math.abs(cell.getBoundingClientRect().left - left) };

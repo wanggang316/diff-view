@@ -17,9 +17,7 @@ button:disabled { opacity:.4; cursor:default; }
 .context,footer { color:var(--muted); font-size:11px; }
 .context { border-bottom:1px solid var(--line); }
 footer { border-top:1px solid var(--line); }
-/* diff2html positions line numbers absolutely so they stay pinned during horizontal scroll; the
-   vertical scroller must be their containing block or they stay put while the code rows scroll. */
-#diff { position:relative; flex:1; min-height:0; overflow:auto; padding:12px; }
+#diff { flex:1; min-height:0; overflow:auto; padding:12px; }
 .empty { padding:60px 24px; color:var(--muted); text-align:center; }
 .d2h-wrapper { margin:0; }
 .d2h-file-wrapper { border-color:var(--line); border-radius:3px; margin-bottom:0; }
@@ -28,14 +26,25 @@ footer { border-top:1px solid var(--line); }
    column gives the character back to the code; every row loses the same one, so they stay aligned. */
 .d2h-code-line-prefix { display:none; }
 .d2h-code-linenumber,.d2h-code-side-linenumber { cursor:pointer; user-select:none; }
-/* Code scrolls horizontally beneath the pinned line numbers, and most row tints are translucent.
-   Paint an opaque base on the cell, then repaint its own tint above it (::before inherits the
-   cell's background color), so the gutter looks unchanged and scrolled code never shows through. */
-.d2h-wrapper { --gutter-base:var(--bg); }
-.d2h-dark-color-scheme { --gutter-base:var(--d2h-dark-bg-color); }
-.d2h-code-linenumber,.d2h-code-side-linenumber { z-index:0; background-image:linear-gradient(var(--gutter-base),var(--gutter-base)); }
-.d2h-code-linenumber::before,.d2h-code-side-linenumber::before { content:''; position:absolute; inset:0; z-index:-1; background-color:inherit; }
-/* Line numbers are positioned out of their row, so every cell must resolve to the same height:
+/* diff2html pins line numbers with position:absolute, which makes WebKit move every cell on each
+   scroll frame. pinGutters() moves them into an in-flow gutter beside each horizontal scroller, so
+   they stay pinned horizontally and scroll vertically with their rows at no per-row cost. */
+.diff-pane { display:flex; min-width:0; }
+.d2h-files-diff > .diff-pane { width:50%; }
+.diff-pane > .d2h-file-diff,.diff-pane > .d2h-file-side-diff { flex:1; min-width:0; width:auto; }
+.diff-gutter { flex:none; }
+.diff-gutter .d2h-diff-table { width:auto; }
+.d2h-code-linenumber,.d2h-code-side-linenumber { position:static; display:table-cell; }
+/* Hunk and placeholder rows have empty line numbers; keep them one line tall like their code row. */
+.diff-gutter td { white-space:nowrap; }
+.diff-gutter td::after { content:'\200b'; }
+.d2h-code-line,.d2h-code-side-line { padding:0 .5em; width:calc(100% - 1em); }
+/* diff2html scopes unified change tints to .d2h-file-diff, which the unified gutter now sits beside. */
+.d2h-file-wrapper > .diff-pane .d2h-del.d2h-change { background-color:var(--d2h-change-del-color); }
+.d2h-file-wrapper > .diff-pane .d2h-ins.d2h-change { background-color:var(--d2h-change-ins-color); }
+.d2h-dark-color-scheme .d2h-file-wrapper > .diff-pane .d2h-del.d2h-change { background-color:var(--d2h-dark-change-del-color); }
+.d2h-dark-color-scheme .d2h-file-wrapper > .diff-pane .d2h-ins.d2h-change { background-color:var(--d2h-dark-change-ins-color); }
+/* Line numbers sit in a separate table, so every cell must resolve to the same height:
    one shared font and line height, equal vertical padding, and no inline-block baseline gap. */
 .d2h-diff-table,.d2h-code-line-ctn,.d2h-code-linenumber,.d2h-code-side-linenumber { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; }
 .d2h-diff-table td { padding-top:1px; padding-bottom:1px; }
@@ -60,7 +69,7 @@ footer { border-top:1px solid var(--line); }
 :root[data-chrome=none] footer { display:none; }
 :root[data-chrome=none] #diff { padding:0; }
 :root[data-chrome=none] .d2h-file-wrapper { border:0; border-radius:0; }
-:root[data-chrome=none] .d2h-wrapper { color:var(--text); background:var(--bg); --d2h-empty-placeholder-bg-color:var(--panel); --d2h-empty-placeholder-border-color:var(--line); --d2h-bg-color:var(--bg); --d2h-border-color:var(--line); --gutter-base:var(--bg); }
+:root[data-chrome=none] .d2h-wrapper { color:var(--text); background:var(--bg); --d2h-empty-placeholder-bg-color:var(--panel); --d2h-empty-placeholder-border-color:var(--line); --d2h-bg-color:var(--bg); --d2h-border-color:var(--line); }
 :root[data-chrome=none] .d2h-diff-table,
 :root[data-chrome=none] .d2h-code-line-ctn,
 :root[data-chrome=none] .d2h-code-linenumber,
